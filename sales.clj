@@ -132,7 +132,7 @@ Enter an option?
 )   
 
 (defn get-customer-name []
-   (do (println "Enter customer name:") (read-line) )
+    (do (println "Enter customer name:") (read-line) )
 )
 
 (defn get-item-name []
