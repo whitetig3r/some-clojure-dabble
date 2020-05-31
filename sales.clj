@@ -66,11 +66,11 @@ Enter an option?
     )
 )
 
-(def SALES_HASH_WITH_PRICE_WITH_PRICE
+(def SALES_HASH_WITH_PRICE
     (sales-splitter)
 )
 
-(def SALES_HASH_WITH_PRICE_WITH_NAME
+(def SALES_HASH_WITH_NAME
     (modified-sales-splitter)
 )
 
@@ -90,7 +90,7 @@ Enter an option?
         (str/join "\n"
             (map
                 (fn [[id, props]] (str/join " : " [(name id) props]))
-                SALES_HASH_WITH_PRICE_WITH_NAME
+                SALES_HASH_WITH_NAME
             )
         )   
     )   
@@ -105,7 +105,7 @@ Enter an option?
         (fn [sales-props-list] 
             (= (get sales-props-list 0) customer-name)
         )
-        (vals SALES_HASH_WITH_PRICE_WITH_PRICE)
+        (vals SALES_HASH_WITH_PRICE)
     )
 )
 
@@ -114,7 +114,7 @@ Enter an option?
         (fn [sales-props-list] 
             (= (get sales-props-list 1) item-name)
         )
-        (vals SALES_HASH_WITH_PRICE_WITH_NAME)
+        (vals SALES_HASH_WITH_NAME)
     )
 )
 
@@ -162,7 +162,7 @@ Enter an option?
         "4" (do (-> (get-customer-name) (get-customer-total) (println)) (MenuDriver))
         "5" (do (-> (get-item-name) (get-item-total) (println)) (MenuDriver))
         "6" (println "GoodBye!")
-        (println "Invalid option selected.")(MenuDriver)
+        (do (println "Invalid option selected.") (MenuDriver))
         )
     )
 )
