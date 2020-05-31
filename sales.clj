@@ -96,10 +96,6 @@ Enter an option?
     )   
 )
 
-(defn customers []
-    (println PRODUCTS_HASH)
-)
-
 (defn get-required-customer [customer-name]
     (filter 
         (fn [sales-props-list] 
