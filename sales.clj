@@ -1,6 +1,6 @@
 (require '[clojure.string :as str])
 
-(def MENU_STRING "
+(def MENU-STRING "
 *** Sales Menu ***
 ------------------
 
@@ -11,8 +11,8 @@
 5. Total Count for Product
 6. Exit
 
-Enter an option?
-")
+Enter an option?"
+)
 
 (defn tuple-splitter[item]
     (str/split item #"\|")
@@ -34,7 +34,7 @@ Enter an option?
     (apply merge 
         (map
             (fn [item] 
-                (sorted-map (Long. (first item)) (vec(rest item)) )
+                (sorted-map (Long. (first item)) (vec (rest item)) )
             )
             slurp-to-use
         )
@@ -49,30 +49,28 @@ Enter an option?
     (generic-splitter PRODUCT-SLURP)
 )
 
-(defn transform-sales-props[custID, prodID, itemCount]
-    (conj [] (get(get CUSTOMER-HASH (Long. custID)) 0) (get (get PRODUCT-HASH (Long. prodID)) 1) itemCount )
-)
-
-(defn transform-sales-props-name[custID, prodID, itemCount]
-    (conj [] (get(get CUSTOMER-HASH (Long. custID)) 0) (get (get PRODUCT-HASH (Long. prodID)) 0) itemCount )
-)
-
-(defn sales-splitter []
-    (apply merge 
-        (map
-            (fn [item] 
-                (sorted-map (Long. (first item)) (apply transform-sales-props (rest item)) )
-            )
-            SALE-SLURP
-        )
+(defn transform-sales-props[cust-id, prod-id, item-count, index-for-prod-hash]
+    (conj [] 
+        (get (get CUSTOMER-HASH (Long. cust-id)) 0) 
+        (get (get PRODUCT-HASH (Long. prod-id)) index-for-prod-hash) 
+        item-count 
     )
 )
 
-(defn modified-sales-splitter []
+(defn sales-splitter [index-for-prod-hash]
     (apply merge 
         (map
             (fn [item] 
-                (sorted-map (Long. (first item)) (apply transform-sales-props-name (rest item)) )
+                (sorted-map 
+                    (Long. (first item)) 
+                    (apply 
+                        transform-sales-props 
+                        (concat 
+                            (rest item) 
+                            (conj [] index-for-prod-hash) 
+                        ) 
+                    )
+                )
             )
             SALE-SLURP
         )
@@ -80,11 +78,11 @@ Enter an option?
 )
 
 (def SALE-HASH-PRICE
-    (sales-splitter)
+    (sales-splitter 1)
 )
 
 (def SALE-HASH-NAME
-    (modified-sales-splitter)
+    (sales-splitter 0)
 )
 
 (defn print-table [hash-to-print]
@@ -98,32 +96,26 @@ Enter an option?
     )   
 )
 
-(defn print-sales-table []
-    (println
-        (str/join "\n"
-            (map
-                (fn [[id, props]] (str/join " : " [id props]))
-                SALE-HASH-NAME
-            )
-        )   
-    )   
-)
-
-(defn get-required-customer [customer-name]
+(defn get-filtered-entity [entity-name, hash-to-filter, index-to-extract]
     (filter 
         (fn [sales-props-list] 
-            (= (get sales-props-list 0) customer-name)
+            (= (get sales-props-list index-to-extract) entity-name)
         )
-        (vals SALE-HASH-PRICE)
+        (vals hash-to-filter)
     )
 )
 
-(defn get-required-item [item-name]
-    (filter 
-        (fn [sales-props-list] 
-            (= (get sales-props-list 1) item-name)
+(defn calculate-customer-total [customer-name]
+    (reduce +
+        (map
+            (fn [prop] 
+                (* 
+                    (Float. (get prop 1)) 
+                    (Float. (get prop 2)) 
+                ) 
+            )
+            (get-filtered-entity customer-name SALE-HASH-PRICE 0)
         )
-        (vals SALE-HASH-NAME)
     )
 )
 
@@ -131,23 +123,20 @@ Enter an option?
     (str
         customer-name
         ": $ "
-        (format "%.2f"
-            (reduce +
-                (map
-                    (fn [prop] (* (Float. (get prop 1)) (Float. (get prop 2)) ) )
-                    (get-required-customer customer-name)
-                )
+        (let [total (calculate-customer-total customer-name)]
+            (case total
+                0 "0.00"
+                (format "%.2f" total)
             )
         )
     )
 )   
 
-(defn get-customer-name []
-    (do (println "Enter customer name:") (read-line) )
-)
-
-(defn get-item-name []
-    (do (println "Enter item name:") (read-line) )
+(defn get-input [prompt]
+    (println prompt) 
+    (let [ inp (read-line) ]
+        inp
+    )
 )
 
 (defn get-item-total [item]
@@ -157,25 +146,25 @@ Enter an option?
         (reduce +
             (map
                 (fn [prop] (read-string (get prop 2)) )
-                (get-required-item item)
+                (get-filtered-entity item SALE-HASH-NAME 1)
             )
         )
     )
 )
 
-(defn MenuDriver []
-    (println MENU_STRING)
-    (let [selectedOption (read-line)]
-        (case selectedOption 
-        "1" (do (print-table CUSTOMER-HASH) (MenuDriver))
-        "2" (do (print-table PRODUCT-HASH) (MenuDriver))
-        "3" (do (print-sales-table) (MenuDriver))
-        "4" (do (-> (get-customer-name) (get-customer-total) (println)) (MenuDriver))
-        "5" (do (-> (get-item-name) (get-item-total) (println)) (MenuDriver))
-        "6" (println "GoodBye!")
-        (do (println "Invalid option selected.") (MenuDriver))
+(defn MenuDriver [recursive-nil]
+    (println MENU-STRING)
+    (let [selected-option (read-line)]
+        (case selected-option 
+            "1" (-> (print-table CUSTOMER-HASH) (MenuDriver))
+            "2" (-> (print-table PRODUCT-HASH) (MenuDriver))
+            "3" (-> (print-table SALE-HASH-NAME) (MenuDriver))
+            "4" (-> (get-input "Enter customer name:") (get-customer-total) (println) (MenuDriver))
+            "5" (-> (get-input "Enter item name:") (get-item-total) (println) (MenuDriver))
+            "6" (println "GoodBye!")
+            (-> (println "Invalid option selected.") (MenuDriver))
         )
     )
 )
 
-(MenuDriver)
+(-> (print) (MenuDriver))
